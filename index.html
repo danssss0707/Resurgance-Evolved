@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <title>Resurgence: Evolved</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app-root">
+
+    <!-- ================= SCREEN 1: MAIN MENU ================= -->
+    <section id="screen-main-menu" class="screen-view active">
+      <div class="menu-overlay-backdrop"></div>
+
+      <div class="menu-content-container">
+        <!-- Header Branding -->
+        <header class="menu-header">
+          <div class="title-sub">TACTICAL TOP-DOWN PROTOCOL</div>
+          <h1 class="title-main">RESURGENCE: EVOLVED</h1>
+          <div class="title-badge">VERSION 0.4.2 // RANGE ONLINE</div>
+        </header>
+
+        <!-- Main Body Grid: Actions on Left, Front-Facing Tough Operator on Center-Right -->
+        <div class="menu-body-grid">
+          <!-- Left Column: Primary Navigation Buttons & Status -->
+          <div class="menu-actions-panel">
+            <button id="btn-deploy" class="menu-action-btn btn-deploy-cta">
+              <span class="btn-subtext">COMMENCE OPERATION</span>
+              <span class="btn-primary-text">DEPLOY</span>
+            </button>
+
+            <button id="btn-open-loadout" class="menu-action-btn btn-loadout-cta">
+              <span class="btn-subtext">ATTACHMENT WORKBENCH</span>
+              <span class="btn-primary-text">LOADOUT & GUNSMITH</span>
+            </button>
+
+            <!-- Loadout Summary Badge -->
+            <div class="loadout-summary-card">
+              <div class="summary-label">EQUIPPED PRIMARY</div>
+              <div id="showcase-weapon-name" class="summary-name">M4A1 CARBINE</div>
+              <div class="summary-specs">
+                <span id="showcase-weapon-class">ASSAULT RIFLE</span> •
+                <span id="showcase-stat-mag">30 RDS</span> •
+                <span id="showcase-stat-fire">AUTO</span>
+              </div>
+            </div>
+
+            <div class="quick-status-card">
+              <div class="status-indicator-dot"></div>
+              <span>TARGET RANGE: ALL LANES ACTIVE</span>
+            </div>
+          </div>
+
+          <!-- Center-Right: Full-Height Front-Facing Operator Canvas -->
+          <!-- Center-Right: Full-Height Front-Facing Operator Canvas -->
+          <div class="menu-operator-showcase">
+            <canvas id="menuOperatorCanvas" width="840" height="980"></canvas>
+          </div>
+        </div>
+
+        <!-- Footer Ticker -->
+        <footer class="menu-footer">
+          <span>PRESS [SPACE] OR CLICK DEPLOY TO ENTER RANGE</span>
+          <span>SELECT LOADOUT TO CONFIGURE WEAPONS & ATTACHMENTS</span>
+        </footer>
+      </div>
+    </section>
+
+   <!-- ================= SCREEN 2: LOADOUT / GUNSMITH WORKBENCH ================= -->
+    <section id="screen-gunsmith" class="screen-view">
+      <!-- Top Bar Navigation inside Workbench -->
+      <header class="workbench-nav">
+        <div class="workbench-left">
+          <button id="btn-workbench-back" class="nav-btn-alt">← MAIN MENU</button>
+          <span class="workbench-title">WORKBENCH // ARMORY MATRIX</span>
+        </div>
+        <div class="workbench-presets-bar">
+          <button id="btn-gunsmith-reset" class="nav-btn-alt" title="Reset weapon to factory stock">FACTORY RESET</button>
+          <button id="btn-gunsmith-random" class="nav-btn-alt" title="Randomize all attachment slots">RANDOMIZE</button>
+          <button id="btn-gunsmith-share" class="nav-btn-alt" title="Copy build string to clipboard">SHARE BUILD</button>
+        </div>
+        <button id="btn-workbench-deploy" class="nav-btn-highlight">DEPLOY NOW →</button>
+      </header>
+
+      <!-- Selection & Attachment Configuration Grid -->
+      <div class="workbench-body">
+        <!-- Weapon Header & Category Selector -->
+        <div class="gunsmith-top-bar">
+          <div class="selector-field">
+            <label for="category-select">CLASSIFICATION</label>
+            <select id="category-select">
+              <option value="ALL">ALL CLASSES</option>
+              <option value="Assault Rifle">ASSAULT RIFLES</option>
+              <option value="Battle Rifle">BATTLE RIFLES</option>
+              <option value="SMG">SUBMACHINE GUNS (SMG)</option>
+              <option value="Shotgun">SHOTGUNS</option>
+              <option value="Sniper">SNIPER RIFLES</option>
+              <option value="LMG">LIGHT MACHINE GUNS (LMG)</option>
+              <option value="DMR">DESIGNATED MARKSMAN (DMR)</option>
+            </select>
+          </div>
+
+          <div class="selector-field flex-grow">
+            <label for="weapon-select">FIREARM SELECTION</label>
+            <select id="weapon-select"></select>
+          </div>
+        </div>
+
+        <div class="gunsmith-workspace">
+          <!-- Main Center: Side Preview with Interactive Attachment Nodes -->
+          <div class="preview-container">
+            <div class="preview-header">
+              <span id="preview-weapon-name">M4A1</span>
+              <span id="preview-weapon-caliber" class="preview-tag">5.56x45mm NATO</span>
+            </div>
+
+            <!-- Canvas wrapper with overlay interactive nodes -->
+            <div class="canvas-node-wrapper">
+              <canvas id="gunPreviewCanvas" width="820" height="340"></canvas>
+              
+              <!-- Interactive Clickable Hotspot Nodes -->
+              <div class="attachment-node" id="node-optic" data-slot="optic" title="Configure Optic">
+                <div class="node-ring"></div>
+                <span class="node-label">OPTIC</span>
+              </div>
+              <div class="attachment-node" id="node-barrel" data-slot="barrel" title="Configure Barrel">
+                <div class="node-ring"></div>
+                <span class="node-label">BARREL</span>
+              </div>
+              <div class="attachment-node" id="node-underbarrel" data-slot="underbarrel" title="Configure Underbarrel">
+                <div class="node-ring"></div>
+                <span class="node-label">UNDERBARREL</span>
+              </div>
+              <div class="attachment-node" id="node-other" data-slot="other" title="Configure Stock">
+                <div class="node-ring"></div>
+                <span class="node-label">STOCK</span>
+              </div>
+              <div class="attachment-node" id="node-ammo" data-slot="ammo" title="Configure Caliber / Ammo">
+                <div class="node-ring"></div>
+                <span class="node-label">AMMO</span>
+              </div>
+            </div>
+
+            <div class="preview-hints">CLICK NODES OR CHOOSE TABS TO INSPECT ACCESSORIES IN REAL TIME</div>
+          </div>
+
+          <!-- Right Column: Card-Based Slot Chooser & Dynamic Comparative Stat Bars -->
+          <div class="customization-container">
+            <!-- Slot Selector Navigation Tabs -->
+            <div class="slot-tab-bar">
+              <button class="slot-tab-btn active" data-slot="optic">OPTIC</button>
+              <button class="slot-tab-btn" data-slot="barrel">BARREL</button>
+              <button class="slot-tab-btn" data-slot="underbarrel">UNDER</button>
+              <button class="slot-tab-btn" data-slot="other">STOCK</button>
+              <button class="slot-tab-btn" data-slot="ammo">AMMO</button>
+            </div>
+
+            <!-- Active Attachment Cards Catalog -->
+            <div class="custom-card catalog-card">
+              <div id="attachment-cards-container" class="attachment-cards-grid">
+                <!-- Dynamically populated card items -->
+              </div>
+            </div>
+
+            <!-- Comparative Spec Telemetry Bars -->
+            <div class="custom-card stats-card">
+              <div class="stats-header">
+                <h3>BALLISTIC SPECIFICATION</h3>
+                <span id="build-weight-badge" class="weight-badge">LIGHTWEIGHT</span>
+              </div>
+
+              <!-- Stat 1: Damage -->
+              <div class="stat-bar-group">
+                <div class="stat-bar-labels">
+                  <span>DAMAGE</span>
+                  <strong id="stat-dmg">-</strong>
+                </div>
+                <div class="stat-track">
+                  <div class="stat-bar-base" id="bar-dmg" style="width: 50%;"></div>
+                  <div class="stat-bar-delta" id="delta-dmg"></div>
+                </div>
+              </div>
+
+              <!-- Stat 2: Fire Rate (RPM) -->
+              <div class="stat-bar-group">
+                <div class="stat-bar-labels">
+                  <span>FIRE RATE</span>
+                  <strong id="stat-rpm">-</strong>
+                </div>
+                <div class="stat-track">
+                  <div class="stat-bar-base" id="bar-rpm" style="width: 50%;"></div>
+                  <div class="stat-bar-delta" id="delta-rpm"></div>
+                </div>
+              </div>
+
+              <!-- Stat 3: Muzzle Velocity -->
+              <div class="stat-bar-group">
+                <div class="stat-bar-labels">
+                  <span>VELOCITY</span>
+                  <strong id="stat-vel">-</strong>
+                </div>
+                <div class="stat-track">
+                  <div class="stat-bar-base" id="bar-vel" style="width: 50%;"></div>
+                  <div class="stat-bar-delta" id="delta-vel"></div>
+                </div>
+              </div>
+
+              <!-- Stat 4: Recoil Control -->
+              <div class="stat-bar-group">
+                <div class="stat-bar-labels">
+                  <span>RECOIL STABILIZATION</span>
+                  <strong id="stat-recoil">-</strong>
+                </div>
+                <div class="stat-track">
+                  <div class="stat-bar-base" id="bar-recoil" style="width: 50%;"></div>
+                  <div class="stat-bar-delta" id="delta-recoil"></div>
+                </div>
+              </div>
+
+              <!-- Stat 5: Handling / ADS -->
+              <div class="stat-bar-group">
+                <div class="stat-bar-labels">
+                  <span>HANDLING (ADS SPEED)</span>
+                  <strong id="stat-ads">-</strong>
+                </div>
+                <div class="stat-track">
+                  <div class="stat-bar-base" id="bar-ads" style="width: 50%;"></div>
+                  <div class="stat-bar-delta" id="delta-ads"></div>
+                </div>
+              </div>
+
+              <!-- Compact Metadata Row -->
+              <div class="stat-meta-row">
+                <div>MAGAZINE: <strong id="stat-mag">30 RDS</strong></div>
+                <div>RELOAD: <strong id="stat-reload">2.40s</strong></div>
+                <div>SPREAD: <strong id="stat-spread">0.85°</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SCREEN 3: ACTIVE DEPLOYMENT / FULL-WINDOW RANGE ================= -->
+    <section id="screen-game" class="screen-view">
+      <div class="range-top-hud">
+        <div class="hud-left">
+          <button id="btn-game-pause" class="hud-pause-btn">ESC // MENU</button>
+          <div id="range-weapon-info">EQUIPPED: <span>M4A1</span></div>
+        </div>
+        <div class="range-controls-info">
+          [WASD] MOVE • [L-CLICK] FIRE • [R-CLICK] ADS AIM • [R] RELOAD • [ESC] RETURN TO BASE
+        </div>
+      </div>
+
+      <!-- Main Game Canvas (Resized dynamically to fill entire window) -->
+      <canvas id="gameCanvas"></canvas>
+    </section>
+
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
