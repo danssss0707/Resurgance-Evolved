@@ -1,10 +1,9 @@
 export class P2PNetwork {
   constructor(roomCode = '1111') {
     this.roomCode = String(roomCode);
-    this.beaconId = `${this.roomCode}_beacon`;
     this.peer = null;
     this.peerId = null;
-    this.isBeacon = false;
+    this.slotIndex = -1;
 
     this.connections = new Map(); // peerId -> DataConnection
     this.remotePlayers = new Map(); // peerId -> player state
@@ -17,7 +16,6 @@ export class P2PNetwork {
     this.broadcastRate = 30; // 30Hz
     this.lastBroadcast = 0;
 
-    // Track tab focus state without aggressively hiding players
     this.isTabActive = true;
     window.addEventListener('focus', () => { this.isTabActive = true; });
     window.addEventListener('blur', () => { this.isTabActive = false; });
@@ -25,8 +23,7 @@ export class P2PNetwork {
       this.isTabActive = !document.hidden;
     });
 
-    // Current state: 'game' | 'gunsmith' | 'menu'
-    this.currentScreen = 'menu';
+    this.currentScreen = 'game';
   }
 
   connect(onReady) {
@@ -35,96 +32,66 @@ export class P2PNetwork {
       return;
     }
 
-    // Try claiming the room beacon
-    this.peer = new window.Peer(this.beaconId, { debug: 1 });
+    // Attempt to claim sequential slots 0 through 7
+    this.claimSlot(0, onReady);
+  }
 
-    this.peer.on('open', (id) => {
+  claimSlot(slotIndex, onReady) {
+    if (slotIndex > 8) {
+      // Fallback if all standard slots are busy
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      this.slotIndex = slotIndex;
+      this.peerId = `${this.roomCode}_slot_${rand}`;
+      this.initializePeer(onReady);
+      return;
+    }
+
+    const testId = `${this.roomCode}_slot_${slotIndex}`;
+    const testPeer = new window.Peer(testId, { debug: 0 });
+
+    testPeer.on('open', (id) => {
+      this.peer = testPeer;
       this.peerId = id;
-      this.isBeacon = true;
-      console.log(`[P2P] Room ${this.roomCode} Beacon active:`, id);
-      this.listenForIncoming();
-      if (onReady) onReady(id);
+      this.slotIndex = slotIndex;
+      console.log(`[P2P] Claimed room slot ${slotIndex}: ${id}`);
+      this.initializePeer(onReady);
     });
 
-    this.peer.on('error', (err) => {
+    testPeer.on('error', (err) => {
       if (err.type === 'unavailable-id') {
-        this.peer.destroy();
-        this.connectAsMember(onReady);
+        testPeer.destroy();
+        // Slot is taken, try next slot index
+        this.claimSlot(slotIndex + 1, onReady);
       } else {
-        console.error('[P2P] Peer error:', err);
+        console.error('[P2P Slot Error]:', err);
       }
     });
   }
 
-  connectAsMember(onReady) {
-    const randomSuffix = Math.floor(10000 + Math.random() * 90000);
-    this.peerId = `${this.roomCode}_p_${randomSuffix}`;
-    this.isBeacon = false;
-
-    this.peer = new window.Peer(this.peerId, { debug: 1 });
-
-    this.peer.on('open', (id) => {
-      console.log(`[P2P] Joined room ${this.roomCode}:`, id);
-      this.listenForIncoming();
-
-      // Connect to the beacon
-      const conn = this.peer.connect(this.beaconId, { reliable: false });
-      this.bindConnection(conn);
-
-      if (onReady) onReady(id);
-    });
-
-    this.peer.on('error', (err) => {
-      console.error('[P2P Member Error]:', err);
-    });
-  }
-
-  listenForIncoming() {
+  initializePeer(onReady) {
+    // Listen for incoming peer connections
     this.peer.on('connection', (conn) => {
       this.bindConnection(conn);
-
-      // If we are the beacon, introduce the new connection to everyone else in the room
-      if (this.isBeacon) {
-        conn.on('open', () => {
-          const allOtherPeers = Array.from(this.connections.keys()).filter(id => id !== conn.peer);
-          // Tell the newcomer about everyone
-          conn.send({ t: 'mesh_manifest', peers: allOtherPeers });
-          // Tell everyone about the newcomer
-          this.broadcast({ t: 'new_peer_arrived', peerId: conn.peer });
-        });
-      }
     });
+
+    // Connect outward to all lower slots (0 through slotIndex - 1)
+    for (let s = 0; s < this.slotIndex; s++) {
+      const targetId = `${this.roomCode}_slot_${s}`;
+      const conn = this.peer.connect(targetId, { reliable: false });
+      this.bindConnection(conn);
+    }
+
+    if (onReady) onReady(this.peerId);
   }
 
   bindConnection(conn) {
     conn.on('open', () => {
       this.connections.set(conn.peer, conn);
-      console.log(`[P2P] Connected to: ${conn.peer}`);
+      console.log(`[P2P] Mesh connected with: ${conn.peer}`);
       if (this.onPeerJoin) this.onPeerJoin(conn.peer);
     });
 
     conn.on('data', (data) => {
-      if (!data || !data.t) return;
-
-      // Full mesh handshake resolution
-      if (data.t === 'mesh_manifest') {
-        for (const pid of data.peers) {
-          if (!this.connections.has(pid) && pid !== this.peerId) {
-            const peerConn = this.peer.connect(pid, { reliable: false });
-            this.bindConnection(peerConn);
-          }
-        }
-        return;
-      }
-
-      if (data.t === 'new_peer_arrived') {
-        if (!this.connections.has(data.peerId) && data.peerId !== this.peerId) {
-          const peerConn = this.peer.connect(data.peerId, { reliable: false });
-          this.bindConnection(peerConn);
-        }
-        return;
-      }
-
       this.handleIncomingPacket(conn.peer, data);
     });
 
